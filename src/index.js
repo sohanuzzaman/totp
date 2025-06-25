@@ -3,7 +3,7 @@ export default {
     const url = new URL(request.url);
     const secret = url.searchParams.get("secret");
     const counter = parseInt(url.searchParams.get("counter") || "0");
-    const digits = parseInt(url.searchParams.get("digits") || "2"); // default to 2 based on QR
+    const digits = parseInt(url.searchParams.get("digits") || "6"); // default to 6 digits
 
     if (!secret) {
       return new Response(JSON.stringify({ error: "Missing 'secret' query param" }), {
@@ -26,7 +26,7 @@ export default {
   },
 };
 
-async function generateHOTP(secret, counter, digits = 2) {
+async function generateHOTP(secret, counter, digits = 6) {
   const key = base32ToBytes(secret.replace(/[\s\-]/g, '').toUpperCase());
 
   // Create 8-byte buffer for the counter (big-endian format)
@@ -50,15 +50,7 @@ async function generateHOTP(secret, counter, digits = 2) {
   const otp = (binCode % modulo).toString().padStart(digits, "0");
   
   return {
-    token: otp,
-    debug: {
-      counter: counter,
-      nextCounter: counter + 1,
-      secretLength: secret.length,
-      keyLength: key.length,
-      type: "HOTP",
-      digits: digits
-    }
+    token: otp
   };
 }
 
