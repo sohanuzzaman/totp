@@ -30,19 +30,23 @@ async function generateTOTP(secret) {
   const epoch = Math.floor(Date.now() / 1000);
   const counter = Math.floor(epoch / timeStep);
 
+  // Create 8-byte buffer for the counter (big-endian format)
   const buffer = new ArrayBuffer(8);
   const view = new DataView(buffer);
-  view.setUint32(4, counter, false);
+  // Set the counter as a 64-bit big-endian integer
+  view.setUint32(0, Math.floor(counter / 0x100000000), false); // High 32 bits
+  view.setUint32(4, counter & 0xffffffff, false); // Low 32 bits
 
   const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, buffer);
   
-  const offset = new Uint8Array(signature)[19] & 0xf;
+  const hashBytes = new Uint8Array(signature);
+  const offset = hashBytes[hashBytes.length - 1] & 0xf;
   const binCode =
-    ((new Uint8Array(signature)[offset] & 0x7f) << 24) |
-    ((new Uint8Array(signature)[offset + 1] & 0xff) << 16) |
-    ((new Uint8Array(signature)[offset + 2] & 0xff) << 8) |
-    (new Uint8Array(signature)[offset + 3] & 0xff);
+    ((hashBytes[offset] & 0x7f) << 24) |
+    ((hashBytes[offset + 1] & 0xff) << 16) |
+    ((hashBytes[offset + 2] & 0xff) << 8) |
+    (hashBytes[offset + 3] & 0xff);
 
   const otp = (binCode % 1000000).toString().padStart(6, "0");
   return otp;
