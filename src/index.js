@@ -2,7 +2,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const secret = url.searchParams.get("secret");
-    const digits = parseInt(url.searchParams.get("digits") || "2"); // default to 2 digits from export
+    const digits = parseInt(url.searchParams.get("digits") || "6"); // default to 6 digits to match authenticator
 
     if (!secret) {
       return new Response(JSON.stringify({ error: "Missing 'secret' query param" }), {
@@ -39,7 +39,7 @@ async function generateTOTP(secret, digits = 6) {
   view.setUint32(0, Math.floor(counter / 0x100000000), false); // High 32 bits
   view.setUint32(4, counter & 0xffffffff, false); // Low 32 bits
 
-  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, buffer);
   
   const hashBytes = new Uint8Array(signature);
