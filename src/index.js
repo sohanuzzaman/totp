@@ -11,7 +11,7 @@ export default {
     }
 
     try {
-      const token = generateTOTP(secret);
+      const token = await generateTOTP(secret);
       return new Response(JSON.stringify({ token }), {
         headers: { "Content-Type": "application/json" },
       });
@@ -24,7 +24,7 @@ export default {
   },
 };
 
-function generateTOTP(secret) {
+async function generateTOTP(secret) {
   const key = base32ToBytes(secret.replace(/[\s\-]/g, '').toUpperCase());
   const timeStep = 30;
   const epoch = Math.floor(Date.now() / 1000);
@@ -34,21 +34,18 @@ function generateTOTP(secret) {
   const view = new DataView(buffer);
   view.setUint32(4, counter, false);
 
-  const cryptoKey = crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, buffer);
+  
+  const offset = new Uint8Array(signature)[19] & 0xf;
+  const binCode =
+    ((new Uint8Array(signature)[offset] & 0x7f) << 24) |
+    ((new Uint8Array(signature)[offset + 1] & 0xff) << 16) |
+    ((new Uint8Array(signature)[offset + 2] & 0xff) << 8) |
+    (new Uint8Array(signature)[offset + 3] & 0xff);
 
-  return cryptoKey.then((key) =>
-    crypto.subtle.sign("HMAC", key, buffer).then((signature) => {
-      const offset = new Uint8Array(signature)[19] & 0xf;
-      const binCode =
-        ((new Uint8Array(signature)[offset] & 0x7f) << 24) |
-        ((new Uint8Array(signature)[offset + 1] & 0xff) << 16) |
-        ((new Uint8Array(signature)[offset + 2] & 0xff) << 8) |
-        (new Uint8Array(signature)[offset + 3] & 0xff);
-
-      const otp = (binCode % 1000000).toString().padStart(6, "0");
-      return otp;
-    })
-  );
+  const otp = (binCode % 1000000).toString().padStart(6, "0");
+  return otp;
 }
 
 function base32ToBytes(base32) {
