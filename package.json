@@ -1,0 +1,17 @@
+{
+  "name": "totp",
+  "version": "1.0.0",
+  "description": "OTP generator CF worker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "base32-encode": "^2.0.0",
+    "otplib": "^12.0.1",
+    "protobufjs": "^7.5.3"
+  }
+}
